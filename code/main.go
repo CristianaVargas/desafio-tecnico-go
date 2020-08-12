@@ -6,6 +6,9 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// Accounts is the list os accounts
+var Accounts []Account = []Account{}
+
 func main() {
 
 	router := mux.NewRouter()
