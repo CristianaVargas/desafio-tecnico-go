@@ -6,8 +6,11 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// Accounts is the list os accounts
+// Accounts is the list of accounts
 var Accounts []Account = []Account{}
+
+//Transfers is the list of transfers of an account
+var Transfers []Transfer = []Transfer{}
 
 func main() {
 
