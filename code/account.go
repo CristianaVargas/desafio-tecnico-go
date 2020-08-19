@@ -13,7 +13,7 @@ import (
 // Account is a struct that represents the accounts
 type Account struct {
 	ID        int       `json:"id"`
-	Name      string    `json:"name"` //Necessário setar esses valores como OBRIGATORIOS: Name, CPF e Secret
+	Name      string    `json:"name"`
 	Cpf       string    `json:"cpf"`
 	Secret    string    `json:"secret"`
 	Balance   float32   `json:"balance"`
