@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -19,75 +18,78 @@ type Login struct {
 	Secret string `json:"secret"`
 }
 
-// AuthenticateUser autenticate user
+// Claims will be encoded to a JWT
+type Claims struct {
+	AccountID int
+	jwt.StandardClaims
+}
+
+// AuthenticateUser authenticate user
 func AuthenticateUser(w http.ResponseWriter, r *http.Request) {
 	var LoggedUser Login
 	json.NewDecoder(r.Body).Decode(&LoggedUser)
-	for _, account := range Accounts {
-		if account.Cpf == LoggedUser.Cpf {
-			//Found account!
-			if account.Secret == LoggedUser.Secret {
+	loggedAccount := FindAccountByCpf(LoggedUser.Cpf)
+	if (Account{} != loggedAccount) {
+		//not empty
+		if CheckPasswordHash(LoggedUser.Secret, loggedAccount.Secret) {
 
-				signingKey = []byte(account.Secret)
+			expirationTime := time.Now().Add(time.Minute * 30)
+			signingKey = []byte(LoggedUser.Secret)
 
-				token, err := GenerateJWT()
-				validToken = token
-				if err != nil {
-					fmt.Println("Error generating token string")
-				}
-				w.Write([]byte("Login Successful"))
+			claims := &Claims{
+				AccountID: loggedAccount.ID,
+				StandardClaims: jwt.StandardClaims{
+					ExpiresAt: expirationTime.Unix(),
+				},
+			}
+
+			token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+			stringToken, err := token.SignedString([]byte(signingKey))
+
+			if err != nil {
+				w.WriteHeader(400)
+				w.Write([]byte("Error generating token"))
 				return
 			}
+
+			validToken = stringToken
+
+			w.Write([]byte("Login Successful"))
+			return
 		}
 	}
 	w.WriteHeader(404)
-	w.Write([]byte("Account not found"))
+	w.Write([]byte("Account or password not found"))
 
 }
 
 //IsAuthorized checks if user is authenticated
 func IsAuthorized(endpoint http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		headerToken := r.Header.Get("Token")
-		if headerToken != "" {
-			token, err := jwt.Parse(headerToken, func(token *jwt.Token) (interface{}, error) {
-				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-					return nil, fmt.Errorf("There was an error")
-				}
-				return signingKey, nil
-			})
 
-			if err != nil {
-				fmt.Fprintf(w, err.Error())
-			}
+		headToken := r.Header.Get("Token")
+		// Initialize a new instance of `Claims`
+		claims := &Claims{}
 
-			if token.Valid {
-				endpoint.ServeHTTP(w, r)
-			}
+		tkn, err := jwt.ParseWithClaims(headToken, claims, func(token *jwt.Token) (interface{}, error) {
+			return signingKey, nil
+		})
 
-		} else {
-			w.WriteHeader(404)
+		if err != nil {
+			w.WriteHeader(400)
 			w.Write([]byte("User not authorized"))
+			return
 		}
+
+		if !tkn.Valid {
+			w.WriteHeader(400)
+			w.Write([]byte("Token not valid"))
+			return
+		}
+
+		endpoint.ServeHTTP(w, r)
+
 	})
-}
-
-//GenerateJWT to initialize authentication
-func GenerateJWT() (string, error) {
-	token := jwt.New(jwt.SigningMethodHS256)
-
-	claims := token.Claims.(jwt.MapClaims)
-
-	claims["authorized"] = true
-	claims["exp"] = time.Now().Add(time.Minute * 30).Unix()
-
-	tokenString, err := token.SignedString([]byte(signingKey))
-
-	if err != nil {
-		return "", err
-	}
-
-	return tokenString, nil
 }
 
 // AddTokenHeader adds token in the requisition's header

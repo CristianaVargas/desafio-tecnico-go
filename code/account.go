@@ -29,18 +29,31 @@ func GetAllAccounts(w http.ResponseWriter, r *http.Request) {
 // GetBalance get the balance of an account
 func GetBalance(w http.ResponseWriter, r *http.Request) {
 	var idParam string = mux.Vars(r)["account_id"]
+
+	tknAccountID := GetAccountIDFromToken(r.Header.Get("Token"))
+
+	if tknAccountID == "" {
+		w.WriteHeader(400)
+		w.Write([]byte("Could not find Accound ID"))
+		return
+	}
+
+	accountID, err := strconv.Atoi(tknAccountID)
+
 	id, err := strconv.Atoi(idParam)
+
 	if err != nil {
 		w.WriteHeader(400)
 		w.Write([]byte("ID could not be converted to integer"))
 		return
 	}
-	//error checking
-	if id >= len(Accounts) {
+
+	if id != accountID {
 		w.WriteHeader(404)
-		w.Write([]byte("No account found with specified ID"))
+		w.Write([]byte("Account not found"))
 		return
 	}
+
 	s := fmt.Sprintf("%f", Accounts[id].Balance)
 	w.Write([]byte("Your balance is: " + s))
 }
@@ -52,6 +65,13 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 	newAccount.CreatedAt = time.Now()
 	id := len(Accounts)
 	newAccount.ID = id
+	hash, err := HashPassword(newAccount.Secret)
+	if err != nil {
+		w.WriteHeader(400)
+		w.Write([]byte("Account could not be created. "))
+		return
+	}
+	newAccount.Secret = hash
 	Accounts = append(Accounts, newAccount)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(Accounts)
