@@ -62,6 +62,12 @@ func GetBalance(w http.ResponseWriter, r *http.Request) {
 func CreateAccount(w http.ResponseWriter, r *http.Request) {
 	var newAccount Account
 	json.NewDecoder(r.Body).Decode(&newAccount)
+	checkCPF := FindAccountByCpf(newAccount.Cpf)
+	if (checkCPF != Account{}) {
+		w.WriteHeader(400)
+		w.Write([]byte("CPF is already used"))
+		return
+	}
 	newAccount.CreatedAt = time.Now()
 	id := len(Accounts)
 	newAccount.ID = id

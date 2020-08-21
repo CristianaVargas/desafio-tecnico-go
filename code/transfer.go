@@ -89,8 +89,6 @@ func MakeTransfer(w http.ResponseWriter, r *http.Request) {
 	Accounts[originAccount.ID] = originAccount
 	Accounts[destinationAccount.ID] = destinationAccount
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(Transfers)
 	w.Write([]byte("Transference succesfull"))
 	return
 
