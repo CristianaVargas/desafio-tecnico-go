@@ -126,7 +126,7 @@ JSON Body
 
 Transference succesfull
 ```
-## Get list of transferences for one user
+## Get list of transfers for one user
 User must be logged in
 ### Request
 ```
