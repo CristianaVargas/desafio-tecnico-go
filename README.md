@@ -68,7 +68,7 @@ JSON Body
     }
 ]
 ```
-## Atuhenticate user
+## Authenticate user
 ### Request
 ```
 POST http://localhost:5000/login
